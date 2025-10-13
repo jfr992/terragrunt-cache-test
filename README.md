@@ -29,7 +29,6 @@ This will:
 - Run 3 warm cache tests
 - Generate graphs
 
-Takes ~10-15 minutes total.
 
 ## Step 3: View Results (MACOS)
 

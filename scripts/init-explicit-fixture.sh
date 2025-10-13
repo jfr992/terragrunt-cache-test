@@ -227,4 +227,4 @@ resource "null_resource" "karpenter" {
 output "status" { value = "karpenter-installed" }
 TF
 
-echo "✅ Explicit stack fixture created (3 units, 6 providers)"
+echo "Explicit stack fixture created (3 units, 6 providers)"

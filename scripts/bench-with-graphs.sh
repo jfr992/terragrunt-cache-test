@@ -3,6 +3,7 @@ set -euo pipefail
 
 ACTION="${ACTION:-plan}"
 REPS="${REPS:-3}"
+VERBOSE="${VERBOSE:-1}"  # Set to 0 to hide Terragrunt output
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 docker compose up -d minio minio-setup boring-registry worker >/dev/null
@@ -20,12 +21,14 @@ run_in_worker() {
 
 clear_caches() {
   echo "Clearing caches..."
+  # Clear Layer 1 (Terragrunt Provider Cache - host filesystem)
   rm -rf "$ROOT/.cache/tofu-providers"/* "$ROOT/.cache/tg-modules"/* 2>/dev/null || true
-  docker compose run --rm minio-setup sh -lc '
-    mc alias set local http://minio:9000 minio minio12345678 &&
-    (mc rm -r --force local/tofu-mirror || true) &&
-    (mc mb -p local/tofu-mirror || true)
-  ' >/dev/null 2>&1
+
+  # Clear Layer 2 (MinIO - host volume)
+  # Much faster than using mc commands, and avoids connection issues
+  rm -rf "$ROOT/.data/minio/tofu-mirror"/* 2>/dev/null || true
+
+  echo "Caches cleared (Layer 1 + Layer 2)"
 }
 
 prepare_cmd='rm -rf /workspace/.cache/tofu-providers/* /workspace/.cache/tg-modules/* 2>/dev/null || true'
@@ -49,10 +52,21 @@ clear_caches
 
 echo ""
 echo "Step 2: Run cold cache benchmarks (cache cleared before each run)..."
+
+# Build hyperfine command with optional --show-output flag
+show_output_flag=""
+if [ "$VERBOSE" = "1" ]; then
+  echo "  (Showing Terragrunt output for each run)"
+  show_output_flag="--show-output"
+else
+  echo "  (Set VERBOSE=1 to see Terragrunt output)"
+fi
+
 run_in_worker "hyperfine \
   --runs ${REPS} \
   --prepare '${prepare_cmd}' \
   --ignore-failure \
+  ${show_output_flag} \
   --export-json /workspace/bench-cold.json \
   --export-markdown /workspace/bench-cold.md \
   --command-name 'Explicit (cold cache)' \"${explicit_cold}\" \
@@ -65,10 +79,19 @@ run_in_worker "${implicit_warm}" >/dev/null 2>&1
 
 echo ""
 echo "Step 4: Run warm cache benchmarks (caches already populated)..."
+
+# Reuse the same show_output_flag from cold cache
+if [ "$VERBOSE" = "1" ]; then
+  echo "  (Showing Terragrunt output for each run)"
+else
+  echo "  (Set VERBOSE=1 to see Terragrunt output)"
+fi
+
 run_in_worker "hyperfine \
   --runs ${REPS} \
   --warmup 1 \
   --ignore-failure \
+  ${show_output_flag} \
   --export-json /workspace/bench-warm.json \
   --export-markdown /workspace/bench-warm.md \
   --command-name 'Explicit (warm cache)' \"${explicit_warm}\" \
@@ -96,18 +119,16 @@ if command -v python3 >/dev/null; then
     --title "Warm Cache: Explicit vs Implicit Stacks" \
     --output "$ROOT/bench-warm-whisker.png"
 
-  echo "  - Generating overall cache impact comparison..."
-  python3 "$ROOT/scripts/plot_benchmark_comparison.py" \
+  echo "  - Generating all scenarios comparison..."
+  python3 "$ROOT/scripts/plot_all_scenarios.py" \
     "$ROOT/bench-cold.json" "$ROOT/bench-warm.json" \
-    --benchmark-names "Cold Cache" "Warm Cache" \
-    --title "Cache Impact: Cold vs Warm" \
-    --output "$ROOT/bench-cache-comparison.png"
+    --output "$ROOT/bench-all-scenarios.png"
 
   echo ""
   echo "✅ Visualizations created:"
   echo "   - Cold cache whisker plot: $ROOT/bench-cold-whisker.png"
   echo "   - Warm cache whisker plot: $ROOT/bench-warm-whisker.png"
-  echo "   - Cache impact comparison: $ROOT/bench-cache-comparison.png"
+  echo "   - All scenarios comparison: $ROOT/bench-all-scenarios.png"
 else
   echo "⚠️  Python3 not found. Skipping visualization generation."
   echo "   Install Python3 and run:"

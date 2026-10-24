@@ -1,79 +1,9 @@
-# Cache directories (generated during benchmark runs)
-.cache/
-.data/
-
-# Terraform/OpenTofu state and lock files
-*.tfstate
-*.tfstate.*
-*.tfstate.backup
-.terraform/
-.terraform.lock.hcl
-*.terraform.lock.hcl
-
-# Terragrunt cache
-.terragrunt-cache/
-
-# Benchmark output files in root (keep archived results in benchmark-runs/)
-/bench-cold.json
-/bench-cold.md
-/bench-warm.json
-/bench-warm.md
-/bench-all-scenarios.png
-/bench-cold-whisker.png
-/bench-warm-whisker.png
-
-# Keep benchmark-runs/ directory with example results
-# !benchmark-runs/
-
-# Python
+work/
 __pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-venv/
-env/
-ENV/
-.venv
-
-# OS specific
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-*~
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*.swn
-.project
-.settings/
-*.sublime-project
-*.sublime-workspace
-
-# Logs
+*.pyc
+.terragrunt-cache/
+.terragrunt-stack/
+.terraform/
+*.tfstate*
 *.log
-logs/
-
-# Certificates (regenerate with 'make gen-certs')
-certs/*.crt
-certs/*.key
-
-# Docker
-.docker/
-
-# Environment files (if you add them)
-.env
-.env.local
-.env.*.local
-
-# Temporary files
-tmp/
-temp/
-*.tmp
+.DS_Store

@@ -1,0 +1,10 @@
+[tasks.mirror]
+run = "make mirror"
+[tasks.overhead]
+run = "make overhead"
+[tasks.cache]
+run = "make cache"
+[tasks.cache-registry]
+run = "make cache-registry"
+[tasks.summary]
+run = "make summary"

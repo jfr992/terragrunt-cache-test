@@ -1,4 +1,0 @@
-provider_installation {
-  # NOTE: trailing slash required by the mirror protocol
-  network_mirror { url = "https://boring-registry:5601/v1/mirror/" }
-}

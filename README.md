@@ -72,3 +72,35 @@ Requires `hyperfine`, `python3`, `git`, and `unshare` (util-linux). Set `NO_NETN
 ## Results
 
 See `results/` (hyperfine JSON) and `results/SUMMARY.md`.
+
+## Results summary (2026-10-24, 8 vCPU box, local backend, offline except `cache-30-registry`)
+
+Full tables: `results/SUMMARY.md`. Means ± stddev in seconds, 10 runs after 3 warm-up runs, unless noted.
+
+| Warm overhead, `run --all plan` | 30 units | 100 units | 1000 units (3 runs) |
+|---|---|---|---|
+| tofu-only baseline | 0.69 ± 0.05 | 2.38 ± 0.37 | 26.3 ± 1.3 |
+| 0.68 implicit | 1.99 ± 0.17 | 3.90 ± 0.22 | 56.5 ± 7.1 |
+| 0.89 implicit | 1.68 ± 0.12 | 3.05 ± 0.06 | – |
+| 1.2.1 implicit | 1.28 ± 0.12 | 2.88 ± 0.16 | 46.0 ± 1.9 |
+| 0.68 flat | 1.42 ± 0.07 | 3.71 ± 0.18 | – |
+| 0.89 flat | 1.26 ± 0.04 | 3.53 ± 0.47 | – |
+| 1.2.1 flat | 1.03 ± 0.03 | 3.36 ± 0.48 | – |
+| 0.89 explicit | 1.14 ± 0.15 | 4.30 ± 1.22 | – |
+| 1.2.1 explicit | 1.06 ± 0.10 | 3.58 ± 0.25 | 26.8 ± 0.9 |
+
+| Cold `run --all init`, 30 units | offline mirror | registry (network) |
+|---|---|---|
+| tofu-only | 5.17 ± 0.78 | 11.59 ± 0.69 |
+| 0.68, no cache | 5.67 ± 0.75 | 11.86 ± 0.58 |
+| 0.68, cache server | n/a (proxies registries only) | 3.20 ± 0.52 |
+| 1.2.1 default (auto cache + CAS) | 0.89 ± 0.17 | 3.19 ± 0.97 |
+| 1.2.1, auto cache off | 4.03 ± 0.33 | 10.42 ± 0.25 |
+| 1.2.1, CAS off | 1.02 ± 0.16 | 2.94 ± 0.23 |
+| 1.2.1, cache server | n/a | 2.15 ± 0.47 |
+
+Caveats:
+
+- hyperfine runs each command's iterations back to back rather than interleaving them, so drift on the box can bias the results.
+- At 100 units several rows have stddev of 0.3–1.2 s. Differences smaller than about 2σ there are not significant.
+- The 1000-unit rows have only 3 runs and are indicative only.

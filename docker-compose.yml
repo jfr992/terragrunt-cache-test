@@ -1,62 +1,11 @@
+# Optional: Floci local AWS emulator for BACKEND=floci (S3 state). Never real cloud.
 services:
-  worker:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    working_dir: /workspace/fixture
-    volumes:
-      - .:/workspace
-      - ./.tofurc:/root/.tofurc:ro
-      - ./certs/boring-registry.crt:/usr/local/share/ca-certificates/boring-registry.crt:ro
-      - ./.cache/tofu-providers:/cache/providers
-      - ./.cache/tg-modules:/cache/modules
-    environment:
-      - TG_DOWNLOAD_DIR=/cache/modules
-      - TG_PROVIDER_CACHE_DIR=/cache/providers
-      - TG_PROVIDER_CACHE=1
-      - TF_CLI_CONFIG_FILE=/root/.tofurc
-    entrypoint: ["/bin/sh","-lc"]
-    command: ["update-ca-certificates && sleep infinity"]
-
-  minio:
-    image: minio/minio:latest
-    command: server /data --console-address ":9001"
-    environment:
-      - MINIO_ROOT_USER=minio
-      - MINIO_ROOT_PASSWORD=minio12345678
-    ports:
-      - "9000:9000"
-      - "9001:9001"
-    volumes:
-      - ./.data/minio:/data
-
-  minio-setup:
-    image: minio/mc:latest
-    depends_on: [minio]
-    entrypoint: ["/bin/sh","-lc"]
-    command: >
-      "mc alias set local http://minio:9000 minio minio12345678 &&
-       mc mb -p local/tofu-mirror || true"
-    restart: "no"
-
-  boring-registry:
-    image: ghcr.io/boring-registry/boring-registry:latest
-    depends_on: [minio]
-    environment:
-      - AWS_ACCESS_KEY_ID=minio
-      - AWS_SECRET_ACCESS_KEY=minio12345678
-      - PORT=5601
-    volumes:
-      - ./certs/boring-registry.crt:/certs/boring-registry.crt:ro
-      - ./certs/boring-registry.key:/certs/boring-registry.key:ro
-    command: >
-      server
-      --network-mirror-pull-through=true
-      --storage-s3-bucket=tofu-mirror
-      --storage-s3-endpoint=http://minio:9000
-      --storage-s3-region=us-east-1
-      --storage-s3-pathstyle=true
-      --tls-cert-file=/certs/boring-registry.crt
-      --tls-key-file=/certs/boring-registry.key
-    ports:
-      - "5601:5601"
+  floci:
+    image: floci/floci:latest
+    ports: ["127.0.0.1:4566:4566"]
+  floci-setup:
+    image: amazon/aws-cli:latest
+    depends_on: [floci]
+    network_mode: host
+    environment: { AWS_ACCESS_KEY_ID: test, AWS_SECRET_ACCESS_KEY: test, AWS_DEFAULT_REGION: us-east-1 }
+    command: ["--endpoint-url", "http://127.0.0.1:4566", "s3", "mb", "s3://tg-bench-state"]
